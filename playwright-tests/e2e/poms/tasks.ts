@@ -6,6 +6,10 @@ interface TaskName {
   taskName: string;
 }
 
+interface TaskCommentProps extends TaskName {
+  comment: string;
+}
+
 interface CreateNewTaskProps extends TaskName {
   userName?: string;
 }
@@ -29,9 +33,7 @@ export class TaskPage {
     await this.page.getByTestId("form-submit-button").click();
     const taskInDashboard = this.page
       .getByTestId("tasks-pending-table")
-      .getByRole("row", {
-        name: new RegExp(taskName, "i"),
-      });
+      .getByRole('row', { name: taskName })
     await taskInDashboard.scrollIntoViewIfNeeded();
     await expect(taskInDashboard).toBeVisible();
   };
@@ -60,4 +62,28 @@ export class TaskPage {
       this.page.getByTestId("tasks-pending-table").getByRole("row").nth(1)
     ).toContainText(taskName);
   };
+
+  addCommentAndVerify = async ({ taskName, comment }: TaskCommentProps) => {
+    await this.page
+      .getByTestId("tasks-pending-table")
+      .getByRole("row", { name: taskName }).getByText(taskName).click();
+
+    await expect(this.page.getByRole("heading", { name: taskName })).toBeVisible();
+    await this.page.getByTestId("comments-text-field").fill(comment);
+    await this.page.getByTestId("comments-submit-button").click();
+    await expect(this.page.getByTestId('task-comment-content')).toHaveText(comment);
+
+    await this.page.getByTestId('navbar-todos-page-link').click();
+    await expect(this.page.getByTestId("tasks-pending-table")
+      .getByRole('row', { name: taskName })
+      .getByRole('cell').nth(3)).toHaveText("1");
+  }
+
+  verfiyCommentPersisted = async ({ taskName, comment }: TaskCommentProps) => {
+    const taskRow = this.page.getByTestId("tasks-pending-table").getByRole('row', { name: taskName });
+    await expect(taskRow.getByRole("cell").nth(3)).toHaveText("1");
+
+    await taskRow.getByText(taskName).click();
+    await expect(this.page.getByTestId("task-comment-content")).toHaveText(comment);
+  }
 }
